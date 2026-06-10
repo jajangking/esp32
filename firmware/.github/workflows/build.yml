@@ -1,0 +1,87 @@
+name: Build Firmware
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'platformio.ini'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'platformio.ini'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO
+        run: pip install platformio
+
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+          key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-pio-
+
+      - name: Build firmware
+        run: pio run
+
+      - name: Upload firmware binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-esp32
+          path: |
+            .pio/build/esp32dev/firmware.bin
+            .pio/build/esp32dev/bootloader.bin
+            .pio/build/esp32dev/partitions.bin
+
+      - name: Generate release info
+        if: github.ref == 'refs/heads/main'
+        id: info
+        run: |
+          echo "version=$(date +%Y%m%d-%H%M)" >> $GITHUB_OUTPUT
+          echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release (on main push)
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.info.outputs.version }}
+          name: Firmware ${{ steps.info.outputs.version }} (${{ steps.info.outputs.sha }})
+          body: |
+            ## KEI Robot Firmware Build
+
+            - Commit: `${{ steps.info.outputs.sha }}`
+            - Build date: ${{ steps.info.outputs.version }}
+
+            ### Flash Instructions
+
+            ```bash
+            # Via esptool
+            esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 921600 \
+              write_flash \
+              0x1000 .pio/build/esp32dev/bootloader.bin \
+              0x8000 .pio/build/esp32dev/partitions.bin \
+              0x10000 .pio/build/esp32dev/firmware.bin
+            ```
+
+            > Atau gunakan [ESP32 Flash Tool](https://www.espressif.com/en/support/download/other-tools) (Windows).
+          files: |
+            .pio/build/esp32dev/firmware.bin
+            .pio/build/esp32dev/bootloader.bin
+            .pio/build/esp32dev/partitions.bin

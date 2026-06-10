@@ -119,7 +119,7 @@ void stopMotors() {
 
 // ── Sensors ──────────────────────────────────────────────────────────────────
 bool initVL53L0X() {
-  if (!tof.begin()) return false;
+  if (!tof.init()) return false;
   tof.setTimeout(50);
   tof.startContinuous();
   return true;
@@ -258,14 +258,14 @@ void handleCmd() {
 
   bool changed = false;
 
-  if (doc.containsKey("leftMotor") || doc.containsKey("rightMotor")) {
+  if (!doc["leftMotor"].isNull() || !doc["rightMotor"].isNull()) {
     int16_t l = doc["leftMotor"] | state.leftMotor;
     int16_t r = doc["rightMotor"] | state.rightMotor;
     setMotor(l, r);
     changed = true;
   }
 
-  if (doc.containsKey("behavior")) {
+  if (!doc["behavior"].isNull()) {
     state.behavior = doc["behavior"].as<String>();
     if (state.behavior != "explore") {
       // reset servo to center when leaving explore
@@ -275,35 +275,35 @@ void handleCmd() {
     changed = true;
   }
 
-  if (doc.containsKey("servo")) {
+  if (!doc["servo"].isNull()) {
     state.servoAng = constrain(doc["servo"].as<int>(), 0, 180);
     servo.write(state.servoAng);
     changed = true;
   }
 
-  if (doc.containsKey("speedLimit")) {
+  if (!doc["speedLimit"].isNull()) {
     state.speedLimit = constrain(doc["speedLimit"].as<int>(), 0, 255);
     changed = true;
   }
 
-  if (doc.containsKey("safeDist")) {
+  if (!doc["safeDist"].isNull()) {
     state.safeDist = constrain(doc["safeDist"].as<int>(), 30, 2000);
     changed = true;
   }
 
-  if (doc.containsKey("headingReset")) {
+  if (!doc["headingReset"].isNull()) {
     state.yawOffset = state.yaw;
     state.yaw = 0;
     changed = true;
   }
 
-  if (doc.containsKey("emergency")) {
+  if (!doc["emergency"].isNull()) {
     state.emergency = doc["emergency"].as<bool>();
     if (state.emergency) stopMotors();
     changed = true;
   }
 
-  if (doc.containsKey("exploreSpeed")) {
+  if (!doc["exploreSpeed"].isNull()) {
     state.exploreSpd = constrain(doc["exploreSpeed"].as<int>(), 60, 255);
     changed = true;
   }
@@ -337,12 +337,12 @@ void handleConfig() {
     "<style>body{font-family:sans-serif;background:#111;color:#eee;padding:20px;max-width:600px;margin:auto}"
     "h1{color:#f472b6}label{display:block;margin:12px 0 4px}input{width:100%;padding:6px;background:#222;color:#eee;border:1px solid #333;border-radius:4px}"
     ".btn{background:#f472b6;color:#000;border:none;padding:10px 20px;border-radius:6px;font-weight:bold;cursor:pointer;margin-top:16px}"
-    "</style></head><body><h1>⚙ Konfigurasi</h1>"
-    "<form id=f><label>WiFi SSID</label><input name=ssid value='" WIFI_SSID "' disabled>"
-    "<label>Safe Distance (mm)</label><input name=safeDist type=number value='" String(state.safeDist).c_str() "'>"
-    "<label>Speed Limit</label><input name=speedLimit type=number min=0 max=255 value='" String(state.speedLimit).c_str() "'>"
-    "<label>Explore Speed</label><input name=exploreSpeed type=number min=60 max=255 value='" String(state.exploreSpd).c_str() "'>"
-    "<button class=btn type=submit>Simpan</button></form>"
+    "</style></head><body><h1>\u2699 Konfigurasi</h1>"
+    "<form id=f><label>WiFi SSID</label><input name=ssid value='" WIFI_SSID "' disabled>";
+  html += "<label>Safe Distance (mm)</label><input name=safeDist type=number value='" + String(state.safeDist) + "'>";
+  html += "<label>Speed Limit</label><input name=speedLimit type=number min=0 max=255 value='" + String(state.speedLimit) + "'>";
+  html += "<label>Explore Speed</label><input name=exploreSpeed type=number min=60 max=255 value='" + String(state.exploreSpd) + "'>";
+  html += "<button class=btn type=submit>Simpan</button></form>"
     "<script>document.getElementById('f').onsubmit=async function(e){e.preventDefault();"
     "var d=Object.fromEntries(new FormData(this));await fetch('/cmd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({"
     "safeDist:+d.safeDist,speedLimit:+d.speedLimit,exploreSpeed:+d.exploreSpeed})});"

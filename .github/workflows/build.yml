@@ -4,18 +4,27 @@ on:
   push:
     branches: [main]
     paths:
-      - 'src/**'
-      - 'platformio.ini'
+      - 'firmware/src/**'
+      - 'firmware/platformio.ini'
+      - '.github/workflows/**'
   pull_request:
     branches: [main]
     paths:
-      - 'src/**'
-      - 'platformio.ini'
+      - 'firmware/src/**'
+      - 'firmware/platformio.ini'
+      - '.github/workflows/**'
   workflow_dispatch:
+
+env:
+  FIRMWARE_DIR: firmware
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ${{ env.FIRMWARE_DIR }}
 
     steps:
       - name: Checkout repo
@@ -45,10 +54,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: firmware-esp32
-          path: |
-            .pio/build/esp32dev/firmware.bin
-            .pio/build/esp32dev/bootloader.bin
-            .pio/build/esp32dev/partitions.bin
+          path: ${{ env.FIRMWARE_DIR }}/.pio/build/esp32dev/firmware.bin
 
       - name: Generate release info
         if: github.ref == 'refs/heads/main'
@@ -56,6 +62,7 @@ jobs:
         run: |
           echo "version=$(date +%Y%m%d-%H%M)" >> $GITHUB_OUTPUT
           echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        working-directory: .
 
       - name: Create GitHub Release (on main push)
         if: github.ref == 'refs/heads/main'
@@ -72,16 +79,8 @@ jobs:
             ### Flash Instructions
 
             ```bash
-            # Via esptool
             esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 921600 \
-              write_flash \
-              0x1000 .pio/build/esp32dev/bootloader.bin \
-              0x8000 .pio/build/esp32dev/partitions.bin \
-              0x10000 .pio/build/esp32dev/firmware.bin
+              write_flash -z 0x1000 firmware/.pio/build/esp32dev/firmware.bin
             ```
-
-            > Atau gunakan [ESP32 Flash Tool](https://www.espressif.com/en/support/download/other-tools) (Windows).
           files: |
-            .pio/build/esp32dev/firmware.bin
-            .pio/build/esp32dev/bootloader.bin
-            .pio/build/esp32dev/partitions.bin
+            firmware/.pio/build/esp32dev/firmware.bin

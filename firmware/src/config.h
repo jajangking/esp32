@@ -27,6 +27,11 @@
 // Servo
 #define SERVO_PIN     13
 
+// Buzzer (passive)
+#define BUZZER_PIN    4
+#define BUZZER_PWM_CH  2
+#define BUZZER_PWM_FREQ 2000
+
 // I2C
 #define I2C_SDA       21
 #define I2C_SCL       22

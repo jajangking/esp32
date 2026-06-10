@@ -117,6 +117,17 @@ void stopMotors() {
   setMotor(0, 0);
 }
 
+// ── Buzzer ──────────────────────────────────────────────────────────────────
+void buzzerTone(uint16_t freq, uint16_t durationMs) {
+  ledcWriteTone(BUZZER_PWM_CH, freq);
+  delay(durationMs);
+  ledcWriteTone(BUZZER_PWM_CH, 0);
+}
+
+void buzzerBeep() {
+  buzzerTone(2000, 100);
+}
+
 // ── Sensors ──────────────────────────────────────────────────────────────────
 bool initVL53L0X() {
   if (!tof.init()) return false;
@@ -435,6 +446,11 @@ void setup() {
   // Servo
   servo.attach(SERVO_PIN);
   servo.write(90);
+
+  // Buzzer
+  ledcSetup(BUZZER_PWM_CH, BUZZER_PWM_FREQ, PWM_RES);
+  ledcAttachPin(BUZZER_PIN, BUZZER_PWM_CH);
+  buzzerBeep();
 
   // I2C
   Wire.begin(I2C_SDA, I2C_SCL);

@@ -15,6 +15,9 @@ on:
       - '.github/workflows/**'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 env:
   FIRMWARE_DIR: firmware
 

@@ -308,31 +308,46 @@ void autoVLTiming() {
 }
 
 bool initMPU6050() {
-  mpu.initialize();
-  if (!mpu.testConnection()) {
-    // Try alternate address 0x69 (AD0 pulled high)
-    new (&mpu) MPU6050(0x69);
-    mpu.initialize();
-    if (!mpu.testConnection()) {
-      logMsg("MPU6050 not found at 0x68 or 0x69");
-      return false;
+  // Scan I2C bus for MPU6050 (0x68 or 0x69)
+  uint8_t addr = 0;
+  for (uint8_t a = 0x68; a <= 0x69; a++) {
+    Wire.beginTransmission(a);
+    if (Wire.endTransmission() == 0) {
+      Wire.beginTransmission(a);
+      Wire.write(0x75); // WHO_AM_I register
+      if (Wire.endTransmission() == 0 && Wire.requestFrom((int)a, 1) >= 1) {
+        uint8_t whoami = Wire.read();
+        logMsg("I2C 0x%02X: WHO_AM_I = 0x%02X", a, whoami);
+        addr = a;
+        break;
+      }
     }
-    logMsg("MPU6050 at 0x69");
-  } else {
-    logMsg("MPU6050 at 0x68");
   }
+
+  if (addr == 0) {
+    logMsg("MPU6050 not found on I2C bus");
+    return false;
+  }
+
+  // Construct MPU object with correct address
+  if (addr != 0x68) {
+    new (&mpu) MPU6050(addr);
+  }
+
+  // Initialize — ignore testConnection, some clones return different WHO_AM_I
+  mpu.initialize();
+  logMsg("MPU6050 at 0x%02X", addr);
 
   int devStatus = mpu.dmpInitialize();
   if (devStatus != 0) {
-    logMsg("MPU6050 DMP init failed: %d, trying non-DMP mode", devStatus);
-    // Fallback: non-DMP mode (basic accel/gyro only, no yaw/pitch/roll)
+    logMsg("MPU6050 DMP init failed: %d, non-DMP fallback", devStatus);
     mpu.setDMPEnabled(false);
     mpu.setSleepEnabled(false);
     dmpReady = false;
     state.gyroOffsetX = mpu.getXGyroOffset();
     state.gyroOffsetY = mpu.getYGyroOffset();
     state.gyroOffset  = mpu.getZGyroOffset();
-    return true; // Return true - sensor is usable even without DMP
+    return true;
   }
 
   // Supply your own gyro offsets here, scaled to min/max
@@ -385,9 +400,6 @@ void readIMU() {
   state.gyroZ = gyro[2] / 131.0;
   float amag = sqrt(accel[0]*accel[0] + accel[1]*accel[1] + accel[2]*accel[2]) / 16384.0 * 9.80665;
   state.accelMagnitude = amag;
-
-  // Temperature
-  state.temperature = mpu.getTemperature();
 
   unsigned long now = millis();
 
@@ -880,7 +892,9 @@ void setup() {
   ledcSetup(BUZZER_PWM_CH, BUZZER_PWM_FREQ, PWM_RES);
   ledcAttachPin(BUZZER_PIN, BUZZER_PWM_CH);
 
-  // I2C
+  // I2C — enable internal pull-ups for reliability
+  pinMode(I2C_SDA, INPUT_PULLUP);
+  pinMode(I2C_SCL, INPUT_PULLUP);
   Wire.begin(I2C_SDA, I2C_SCL);
   Wire.setClock(100000);
 

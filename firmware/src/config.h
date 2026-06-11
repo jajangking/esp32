@@ -1,8 +1,8 @@
 #pragma once
 
 // WiFi
-#define WIFI_SSID "KEI-Net"
-#define WIFI_PASS "kei-robot-2024"
+#define WIFI_SSID "STARLINK"
+#define WIFI_PASS "12345678910"
 
 // Static IP (optional) — comment out to use DHCP
 // #define USE_STATIC_IP

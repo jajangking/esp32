@@ -270,10 +270,10 @@ uint16_t readDistance() {
   tof.rangingTest(&measure, false);
   if (measure.RangeStatus != 4) {
     state.lastGoodDistance = measure.RangeMilliMeter;
-    state.vlSignalRate = measure.SignalRateRtnMegaCps;
-    state.vlAmbientRate = measure.AmbientRateRtnMegaCps;
-    state.vlValid = measure.SignalRateRtnMegaCps > VL_SIGNAL_OK_THRESHOLD
-                    && measure.AmbientRateRtnMegaCps < VL_AMBIENT_OK_THRESHOLD;
+    state.vlSignalRate = measure.SignalRateRtnMegaCps / 65536.0f;
+    state.vlAmbientRate = measure.AmbientRateRtnMegaCps / 65536.0f;
+    state.vlValid = state.vlSignalRate > VL_SIGNAL_OK_THRESHOLD
+                    && state.vlAmbientRate < VL_AMBIENT_OK_THRESHOLD;
     return measure.RangeMilliMeter;
   }
   return state.lastGoodDistance;
@@ -308,17 +308,20 @@ void autoVLTiming() {
 
 bool initMPU6050() {
   mpu.initialize();
-  if (!mpu.testConnection()) return false;
+  if (!mpu.testConnection()) {
+    // Retry with alternate address 0x69
+    mpu.initialize(0x69);
+    if (!mpu.testConnection()) return false;
+  }
 
   int devStatus = mpu.dmpInitialize();
+  if (devStatus != 0) return false;
 
   // Supply your own gyro offsets here, scaled to min/max
   mpu.setXGyroOffset(0);
   mpu.setYGyroOffset(0);
   mpu.setZGyroOffset(0);
   mpu.setZAccelOffset(0);
-
-  if (devStatus != 0) return false;
 
   mpu.CalibrateGyro(6);
   mpu.CalibrateAccel(6);
@@ -861,6 +864,7 @@ void setup() {
 
   // I2C
   Wire.begin(I2C_SDA, I2C_SCL);
+  Wire.setClock(100000);
 
   // VL53L0X
   state.sensorOk = initVL53L0X();

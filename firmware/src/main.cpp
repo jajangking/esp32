@@ -7,6 +7,7 @@
 #include <Preferences.h>
 #include <ArduinoOTA.h>
 #include <config.h>
+#include <dashboard_html.h>
 
 // Sensors
 #include <Wire.h>
@@ -700,23 +701,7 @@ void handleLogs() {
 }
 
 void handleRoot() {
-  String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'>"
-    "<title>KEI Robot</title><style>body{font-family:sans-serif;background:#0a0a0f;color:#e8e8ed;padding:20px;max-width:800px;margin:auto}"
-    "h1{color:#f472b6}.nav{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}"
-    "a{display:block;padding:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;text-decoration:none;color:#e8e8ed;text-align:center;font-weight:600}"
-    "a:hover{background:rgba(244,114,182,.08);border-color:rgba(244,114,182,.2)}"
-    ".sub{color:#52525b;font-size:12px;margin-top:4px}.v{color:#a855f7;font-size:14px}</style></head><body>"
-    "<h1>KEI Robot</h1>"
-    "<p class=v>v" + String(state.version) + "</p>"
-    "<div class=nav>"
-    "<a href='/telemetry'>Telemetry<span class=sub>JSON status</span></a>"
-    "<a href='/config'>Konfigurasi<span class=sub>Settings</span></a>"
-    "<a href='/diag'>Diagnosa<span class=sub>Sensors &amp; I2C</span></a>"
-    "<a href='/update'>OTA Update<span class=sub>Firmware upload</span></a>"
-    "<a href='/ping'>Ping<span class=sub>Health check</span></a>"
-    "<a href='/version'>Version<span class=sub>Firmware info</span></a>"
-    "</div></body></html>";
-  server.send(200, "text/html", html);
+  server.send(200, "text/html", dashboard_html);
 }
 
 void handleConfig() {

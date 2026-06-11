@@ -6,7 +6,7 @@
 <title>Kei Robot</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{font-family:Inter,-apple-system,BlinkMacSystemFont,system-ui,sans-serif;background:#0a0a0f;color:#e8e8ed;height:100dvh;overflow:hidden;display:flex;flex-direction:column;padding:8px 10px;gap:6px;user-select:none;-webkit-user-select:none}
+body{font-family:Inter,-apple-system,BlinkMacSystemFont,system-ui,sans-serif;background:#0a0a0f;color:#e8e8ed;min-height:100dvh;overflow-y:auto;display:flex;flex-direction:column;padding:8px 10px;gap:6px;user-select:none;-webkit-user-select:none}
 .hd{display:flex;align-items:center;justify-content:space-between;flex-shrink:0;padding:0 4px}
 .hd h1{font-size:20px;font-weight:800;letter-spacing:-.5px;background:linear-gradient(135deg,#f472b6,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .hd .s{display:flex;align-items:center;gap:8px;font-size:12px;color:#52525b}
@@ -29,6 +29,8 @@ body{font-family:Inter,-apple-system,BlinkMacSystemFont,system-ui,sans-serif;bac
 .badge-auto{background:rgba(34,197,94,.1);color:#4ade80;border:1px solid rgba(34,197,94,.18)}
 .badge-manual{background:rgba(113,113,122,.1);color:#a1a1aa;border:1px solid rgba(113,113,122,.18)}
 .badge-emergency{background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.18)}
+.badge-tilt{background:rgba(234,179,8,.1);color:#eab308;border:1px solid rgba(234,179,8,.18)}
+.badge-collision{background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.18)}
 .btn{display:block;padding:8px 4px;border:none;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;text-align:center;transition:all .12s;flex:1;letter-spacing:.2px}
 .btn:active{transform:scale(.93);opacity:.6}
 .btn-danger{background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff}
@@ -58,7 +60,7 @@ body{font-family:Inter,-apple-system,BlinkMacSystemFont,system-ui,sans-serif;bac
 <body>
 
 <div class=hd>
-  <h1>KEI</h1>
+  <h1>KEI <span class=ver id=version style="font-size:10px;color:#52525b;-webkit-text-fill-color:#52525b;font-weight:500;margin-left:2px">v--</span></h1>
   <div class=s>
     <span class="dot g" id=statusDot></span>
     <span id=statusText>online</span>
@@ -87,7 +89,10 @@ body{font-family:Inter,-apple-system,BlinkMacSystemFont,system-ui,sans-serif;bac
   </div>
   <div class=col>
     <div class=mod>
-      <div class=t>System</div>
+      <div style=display:flex;justify-content:space-between;align-items:center>
+        <div class=t style=margin-bottom:0>System</div>
+        <button id=btnMPU style="background:none;border:1px solid rgba(255,255,255,.08);color:#52525b;border-radius:4px;padding:1px 8px;font-size:10px;cursor:pointer;line-height:1.4">MPU</button>
+      </div>
       <div class=gr>
         <div class=i><span class=lb>RSSI</span><span class=vl id=rssi>--</span></div>
         <div class=i><span class=lb>Heap</span><span class=vl id=heap>--</span></div>
@@ -95,18 +100,34 @@ body{font-family:Inter,-apple-system,BlinkMacSystemFont,system-ui,sans-serif;bac
         <div class=i><span class=lb>SSID</span><span class=vl id=ssid>--</span></div>
         <div class="i" style=grid-column:1/-1><span class=lb>Sensors</span><span id=sensorStatus></span></div>
       </div>
+      <div id=mpuBody style='display:none'>
+      <div class=gr>
+        <div class=i><span class=lb>Roll</span><span class=vl id=mpuRoll>--</span></div>
+        <div class=i><span class=lb>Pitch</span><span class=vl id=mpuPitch>--</span></div>
+        <div class=i><span class=lb>Gz</span><span class=vl id=mpuGz>--</span></div>
+        <div class=i><span class=lb>Gx</span><span class=vl id=mpuGx>--</span></div>
+        <div class=i><span class=lb>Gy</span><span class=vl id=mpuGy>--</span></div>
+        <div class=i><span class=lb>Temp</span><span class=vl id=tempVal>--</span></div>
+      </div>
+      </div>
     </div>
   </div>
 </div>
 
-<div class=row style=flex:1>
+<div class=row style=flex:none>
   <div class=col>
     <div class=mod style=flex:1>
       <div class=t>Map</div>
-      <div style=flex:1;display:flex;align-items:center;justify-content:center;min-height:0>
-        <canvas id=mapCanvas width=200 height=100 style="width:100%;height:100%;max-height:100%;border-radius:6px;background:#0f0f1a;border:1px solid rgba(244,114,182,.08)"></canvas>
+      <div style=aspect-ratio:3/2;width:100%>
+        <canvas id=mapCanvas width=300 height=200 style="width:100%;height:100%;border-radius:6px;background:#0f0f1a;border:1px solid rgba(244,114,182,.08)"></canvas>
       </div>
-      <button id=btnYawReset style="background:rgba(234,179,8,.1);color:#eab308;border:1px solid rgba(234,179,8,.12);border-radius:6px;padding:2px 8px;font-size:8px;cursor:pointer;align-self:flex-start;margin-top:3px">⟳ Reset Yaw</button>
+      <div style=display:flex;gap:4px;margin-top:3px;flex-wrap:wrap;align-items:center>
+        <span id=yawVal style="color:#eab308;font-size:8px;font-weight:600;font-variant-numeric:tabular-nums">0.0°</span>
+        <button id=btnYawReset style="background:rgba(234,179,8,.1);color:#eab308;border:1px solid rgba(234,179,8,.12);border-radius:4px;padding:1px 6px;font-size:7px;cursor:pointer">⟳</button>
+        <span id=tiltBadge style=font-size:7px;padding:1px 6px></span>
+        <span id=collisionBadge style=font-size:7px;padding:1px 6px></span>
+        <span id=accelBadge style=font-size:7px;padding:1px 6px;color:#52525b></span>
+      </div>
     </div>
   </div>
 </div>
@@ -114,7 +135,10 @@ body{font-family:Inter,-apple-system,BlinkMacSystemFont,system-ui,sans-serif;bac
 <div class=row style=flex:none>
   <div class=col>
     <div class=mod>
-      <div class=t>Distance & Servo</div>
+      <div style=display:flex;justify-content:space-between;align-items:center>
+        <div class=t style=margin-bottom:0>Distance & Servo</div>
+        <button id=btnVL style="background:none;border:1px solid rgba(255,255,255,.08);color:#52525b;border-radius:4px;padding:1px 8px;font-size:10px;cursor:pointer;line-height:1.4">VL</button>
+      </div>
       <div class=gr>
         <div class=i><span class=lb>Jarak</span><span class=vl id=dist>---</span></div>
         <div class=i><span class=lb>Safe</span><span style=display:flex;align-items:center;gap:4px><button id=safeDec style="background:none;border:1px solid #52525b;color:#a1a1aa;border-radius:4px;width:18px;height:18px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">−</button><span class=vl id=safeDist>20cm</span><button id=safeInc style="background:none;border:1px solid #52525b;color:#a1a1aa;border-radius:4px;width:18px;height:18px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">+</button></span></div>
@@ -123,6 +147,23 @@ body{font-family:Inter,-apple-system,BlinkMacSystemFont,system-ui,sans-serif;bac
         <span class=s id=sbL style=background:#222></span>
         <span class=s id=sbF style=background:#222></span>
         <span class=s id=sbR style=background:#222></span>
+      </div>
+      <div id=vlBody style='display:none'>
+      <div class=gr style=margin-bottom:4px>
+        <div class=i><span class=lb>Signal</span><span class=vl id=vlSignal>--</span></div>
+        <div class=i><span class=lb>Ambient</span><span class=vl id=vlAmbient>--</span></div>
+        <div class=i><span class=lb>Valid</span><span id=vlValid></span></div>
+        <div class=i><span class=lb>Preset</span><span class=vl id=vlPreset>--</span></div>
+        <div class=i><span class=lb>Budget</span><span class=vl id=vlBudgetVal>--</span></div>
+        <div class=i><span class=lb>Offset</span><span class=vl id=vlOffsetVal>--</span></div>
+        <div class=i><span class=lb>Auto</span><span id=vlAutoBadge></span></div>
+        <div class=i><span class=lb>Mode</span><select id=vlPresetSel style="background:#1a1a2e;color:#e8e8ed;border:1px solid #333;border-radius:4px;padding:1px 2px;font-size:9px;flex:1;text-align:right">
+          <option value=standard>Std</option>
+          <option value=high_speed>Fast</option>
+          <option value=high_accuracy>Acc</option>
+          <option value=long_range>Long</option>
+        </select><button class='btn btn-gold' id=btnVlAuto style=font-size:7px;padding:1px 6px;flex:none;width:auto;margin-left:3px>Auto</button></div>
+      </div>
       </div>
       <input type=range min=0 max=180 value=90 id=servoSlider class=slider>
       <div style=display:flex;justify-content:space-between;align-items:center;font-size:11px;flex-shrink:0>
@@ -190,7 +231,13 @@ var BASE_R=42,NUB_R=13,MAX_R=BASE_R-NUB_R;
 var dragging=false,joyL=0,joyR=0,lastL=0,lastR=0,thr=0;
 var lastEmerg=false;
 
+function resizeMap(){
+  var c=$('mapCanvas');
+  if(c&&(c.width<10||c.height<10)){c.width=300;c.height=200;}
+  return c;
+}
 (function(){
+  resizeMap();
   var c=$('mapCanvas');
   if(c){
     var ctx=c.getContext('2d'),w=c.width,h=c.height;
@@ -204,8 +251,6 @@ var lastEmerg=false;
     ctx.restore();
     ctx.fillStyle='rgba(255,255,255,.15)';ctx.font='9px sans-serif';ctx.textAlign='center';
     ctx.fillText('menunggu data...',cx,cy+16);
-    ctx.fillStyle='rgba(244,114,182,.35)';ctx.font='7px monospace';ctx.textAlign='left';ctx.textBaseline='bottom';
-    ctx.fillText('Y:--- R:--- P:--- G:---',4,h-2);
   }
 })();
 
@@ -256,6 +301,22 @@ $('speedLimitSlider').addEventListener('input',function(){
 function setSafe(v){v=Math.max(30,Math.min(2000,v));cmd({safeDist:v});}
 $('safeInc').addEventListener('click',function(){var v=d_safe||200;setSafe(v+50);});
 $('safeDec').addEventListener('click',function(){var v=d_safe||200;setSafe(v-50);});
+$('btnVL').addEventListener('click',function(){
+  var b=$('vlBody'),t=this;
+  if(b.style.display==='none'){b.style.display='';t.textContent='VL-';}
+  else{b.style.display='none';t.textContent='VL';}
+});
+$('btnMPU').addEventListener('click',function(){
+  var b=$('mpuBody'),t=this;
+  if(b.style.display==='none'){b.style.display='';t.textContent='MPU-';}
+  else{b.style.display='none';t.textContent='MPU';}
+});
+$('vlPresetSel').addEventListener('change',function(){
+  cmd({vlPreset:this.value});
+});
+$('btnVlAuto').addEventListener('click',function(){
+  cmd({vlAuto:true});
+});
 $('exploreSpeedSlider').addEventListener('input',function(){
   var v=this.value;$('exploreSpeedVal').textContent=v;cmd({exploreSpeed:parseInt(v)});
 });
@@ -279,13 +340,26 @@ function poll(){
     }
     $('speed').textContent=d.speed||0;
     $('motor').textContent='L'+(d.left||0)+' R'+(d.right||0);
+    if(d.version)$('version').textContent='v'+d.version;
     $('dist').textContent=d.distance<0?'---':(d.distance/10).toFixed(0)+'cm';
     d_safe=d.safeDist||200;$('safeDist').textContent=(d_safe/10).toFixed(0)+'cm';
+    $('vlSignal').textContent=d.vlSignalRate!=null?d.vlSignalRate.toFixed(2)+'Mcps':'--';
+    $('vlAmbient').textContent=d.vlAmbientRate!=null?d.vlAmbientRate.toFixed(2)+'Mcps':'--';
+    var vv=$('vlValid');
+    if(d.vlValid!=null){vv.className=d.vlValid?'vg':'vr';vv.textContent=d.vlValid?'YES':'NO';}
+    $('vlPreset').textContent=d.vlPreset||'--';
+    if(d.vlTimingBudget!=null)$('vlBudgetVal').textContent=d.vlTimingBudget+'us';
+    if(d.vlOffset!=null)$('vlOffsetVal').textContent=d.vlOffset+'mm';
+    var va=$('vlAutoBadge');
+    if(d.vlAuto!=null){va.className=d.vlAuto?'vg':'vr';va.textContent=d.vlAuto?'ON':'OFF';}
+    var ps=$('vlPresetSel');
+    if(d.vlPreset&&d.vlAuto===false)ps.value=d.vlPreset;else if(d.vlAuto===true)ps.value='';
+
     // roll+pitch drawn on canvas HUD
     var ss=$('servoSlider');if(ss&&d.servo!=null){ss.value=d.servo;$('servoVal').textContent=d.servo+'\u00b0';}
     $('behavior').textContent=d.behavior||'stop';
     if(d.speedLimit!=null){$('speedLimitSlider').value=d.speedLimit;$('speedLimitLabel').textContent=d.speedLimit;$('speedLimitVal').textContent=d.speedLimit;}
-    var c=$('mapCanvas');
+    var c=resizeMap();
     if(c){
       var ctx=c.getContext('2d'),w=c.width,h=c.height;
       ctx.clearRect(0,0,w,h);ctx.strokeStyle='rgba(255,255,255,.04)';ctx.lineWidth=0.5;
@@ -345,9 +419,7 @@ function poll(){
       ctx.fillStyle='rgba(244,114,182,.6)';ctx.font='5px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
       ctx.fillText('N',0,-crr-3);ctx.fillText('S',0,crr+3);ctx.fillText('E',crr+3,0);ctx.fillText('W',-crr-3,0);
       ctx.restore();
-      // 5. HUD
-      ctx.fillStyle='rgba(244,114,182,.5)';ctx.font='7px monospace';ctx.textAlign='left';ctx.textBaseline='bottom';
-      ctx.fillText('Y:'+yawVal.toFixed(1)+'\u00b0 R:'+(d.roll||0).toFixed(1)+'\u00b0 P:'+(d.pitch||0).toFixed(1)+'\u00b0 Gz:'+(d.gyroZ||0).toFixed(1),4,h-2);
+      // 5. HUD — yaw numeric on badge, roll/pitch/gyro/temp not shown on canvas
     }
     $('rssi').textContent=d.rssi!=null?d.rssi+'dBm':'--';
     $('heap').textContent=d.heap!=null?fmtHeap(d.heap):'--';
@@ -355,6 +427,18 @@ function poll(){
     $('ssid').textContent=d.ssid||'--';
     var sp=$('sensorStatus');
     sp.innerHTML=(d.sensor_ok?'<span class=vg>VL53L0X OK</span>':'<span class=vr>VL53L0X ERR</span>')+' '+(d.mpu_ok?'<span class=vg>MPU6050 OK</span>':'<span class=vr>MPU6050 ERR</span>');
+    var tb=$('tiltBadge');
+    if(d.tiltDetected){tb.className='badge badge-tilt';tb.textContent='\u26a0 TILT';}else{tb.className='';tb.textContent='';}
+    var cb=$('collisionBadge');
+    if(d.collisionDetected){cb.className='badge badge-collision';cb.textContent='\u26a1 COLLISION';}else{cb.className='';cb.textContent='';}
+    $('accelBadge').textContent=d.accelMag!=null?d.accelMag.toFixed(1)+'m/s\u00b2':'';
+    $('yawVal').textContent=(d.yaw||0).toFixed(1)+'\u00b0';
+    $('tempVal').textContent=d.temp!=null?d.temp.toFixed(1)+'\u00b0C':'--';
+    $('mpuRoll').textContent=d.roll!=null?d.roll.toFixed(1)+'\u00b0':'--';
+    $('mpuPitch').textContent=d.pitch!=null?d.pitch.toFixed(1)+'\u00b0':'--';
+    $('mpuGz').textContent=d.gyroZ!=null?d.gyroZ.toFixed(1)+'dps':'--';
+    $('mpuGx').textContent=d.gyroX!=null?d.gyroX.toFixed(1)+'dps':'--';
+    $('mpuGy').textContent=d.gyroY!=null?d.gyroY.toFixed(1)+'dps':'--';
     var esr=$('exploreSpeedRow');
     if(d.behavior=='explore'){esr.style.display='block';$('exploreSpeedSlider').value=d.exploreSpeed||140;$('exploreSpeedVal').textContent=d.exploreSpeed||140;}
     else{esr.style.display='none';}
@@ -375,6 +459,7 @@ $('logClear').addEventListener('click',function(){logBuf=[];logEl.textContent=''
 function pollLog(){fetch('/logs').then(function(r){return r.text()}).then(function(t){if(t){var lines=t.trim().split('\n');for(var i=0;i<lines.length;i++){var l=lines[i].trim();if(l)logAdd(l);}}}).catch(function(){});}
 setInterval(poll,1000);poll();
 setInterval(pollLog,2000);pollLog();
+window.addEventListener('resize',function(){resizeMap();});
 })();
 </script>
 </body>

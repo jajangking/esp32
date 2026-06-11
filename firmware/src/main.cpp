@@ -267,12 +267,13 @@ bool initVL53L0X() {
 
 uint16_t readDistance() {
   VL53L0X_RangingMeasurementData_t measure;
-  tof.rangingTest(&measure, false);
-  if (measure.RangeStatus != 4) {
+  VL53L0X_Error err = tof.rangingTest(&measure, false);
+  if (err == VL53L0X_ERROR_NONE && measure.RangeStatus == 0 && measure.RangeMilliMeter < 3000) {
     state.lastGoodDistance = measure.RangeMilliMeter;
     state.vlSignalRate = measure.SignalRateRtnMegaCps / 65536.0f;
     state.vlAmbientRate = measure.AmbientRateRtnMegaCps / 65536.0f;
     state.vlValid = state.vlSignalRate > VL_SIGNAL_OK_THRESHOLD
+                    && state.vlSignalRate < 500
                     && state.vlAmbientRate < VL_AMBIENT_OK_THRESHOLD;
     return measure.RangeMilliMeter;
   }

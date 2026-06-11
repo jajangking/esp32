@@ -394,7 +394,7 @@ void readIMU() {
     mpu.getRotation(&gyro[0], &gyro[1], &gyro[2]);
     mpu.getAcceleration(&accel[0], &accel[1], &accel[2]);
   }
-  state.temperature = mpu.getTemperature();
+  state.temperature = mpu.getTemperature() / 340.0 + 36.53;
   state.gyroX = gyro[0] / 131.0;
   state.gyroY = gyro[1] / 131.0;
   state.gyroZ = gyro[2] / 131.0;

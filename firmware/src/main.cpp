@@ -187,16 +187,16 @@ void motorUpdate() {
 
   // Ramp L
   if (motor.currentL < motor.targetL) {
-    motor.currentL = min(motor.currentL + RAMP_STEP, motor.targetL);
+    motor.currentL = min((int)motor.currentL + RAMP_STEP, (int)motor.targetL);
   } else if (motor.currentL > motor.targetL) {
-    motor.currentL = max(motor.currentL - RAMP_STEP, motor.targetL);
+    motor.currentL = max((int)motor.currentL - RAMP_STEP, (int)motor.targetL);
   }
 
   // Ramp R
   if (motor.currentR < motor.targetR) {
-    motor.currentR = min(motor.currentR + RAMP_STEP, motor.targetR);
+    motor.currentR = min((int)motor.currentR + RAMP_STEP, (int)motor.targetR);
   } else if (motor.currentR > motor.targetR) {
-    motor.currentR = max(motor.currentR - RAMP_STEP, motor.targetR);
+    motor.currentR = max((int)motor.currentR - RAMP_STEP, (int)motor.targetR);
   }
 
   applyMotorPWM(motor.currentL, motor.currentR);
@@ -261,23 +261,19 @@ bool initVL53L0X() {
     delay(10);
     if (!tof.begin()) return false;
   }
-  tof.startRangeContinuous();
-  applyVLConfig();
   return true;
 }
 
 uint16_t readDistance() {
-  if (tof.isRangeComplete()) {
-    VL53L0X_RangingMeasurementData_t measure;
-    tof.readRangeResult(&measure);
-    if (measure.RangeStatus != 4) {
-      state.lastGoodDistance = measure.RangeMilliMeter;
-      state.vlSignalRate = measure.SignalRateRtnMegaCps;
-      state.vlAmbientRate = measure.AmbientRateMegaCps;
-      state.vlValid = measure.SignalRateRtnMegaCps > VL_SIGNAL_OK_THRESHOLD
-                      && measure.AmbientRateMegaCps < VL_AMBIENT_OK_THRESHOLD;
-      return measure.RangeMilliMeter;
-    }
+  VL53L0X_RangingMeasurementData_t measure;
+  tof.rangingTest(&measure, false);
+  if (measure.RangeStatus != 4) {
+    state.lastGoodDistance = measure.RangeMilliMeter;
+    state.vlSignalRate = measure.SignalRateRtnMegaCps;
+    state.vlAmbientRate = measure.AmbientRateRtnMegaCps;
+    state.vlValid = measure.SignalRateRtnMegaCps > VL_SIGNAL_OK_THRESHOLD
+                    && measure.AmbientRateRtnMegaCps < VL_AMBIENT_OK_THRESHOLD;
+    return measure.RangeMilliMeter;
   }
   return state.lastGoodDistance;
 }
@@ -285,8 +281,7 @@ uint16_t readDistance() {
 void applyVLConfig() {
   if (!state.sensorOk) return;
   uint32_t budget = constrain(state.vlTimingBudget, 20000U, 200000U);
-  tof.setMeasurementTimingBudget(budget);
-  tof.setOffset(state.vlOffset);
+  tof.setMeasurementTimingBudgetMicroSeconds(budget);
   logMsg("VL config: budget=%dus offset=%dmm", budget, state.vlOffset);
 }
 
@@ -357,16 +352,16 @@ void readIMU() {
   state.roll  = ypr[2] * 180.0 / PI;
 
   // Raw gyro (LSB → deg/s, ±250dps = 131 LSB/(deg/s))
-  int16_t gx, gy, gz;
-  mpu.dmpGetGyro(&gx, &gy, &gz, fifoBuffer);
-  state.gyroX = gx / 131.0;
-  state.gyroY = gy / 131.0;
-  state.gyroZ = gz / 131.0;
+  int16_t gyro[3];
+  mpu.dmpGetGyro(gyro, fifoBuffer);
+  state.gyroX = gyro[0] / 131.0;
+  state.gyroY = gyro[1] / 131.0;
+  state.gyroZ = gyro[2] / 131.0;
 
   // Raw accel for collision (LSB → m/s², ±2g = 16384 LSB/g)
-  int16_t ax, ay, az;
-  mpu.dmpGetAccel(&ax, &ay, &az, fifoBuffer);
-  float amag = sqrt(ax*ax + ay*ay + az*az) / 16384.0 * 9.80665;
+  int16_t accel[3];
+  mpu.dmpGetAccel(accel, fifoBuffer);
+  float amag = sqrt(accel[0]*accel[0] + accel[1]*accel[1] + accel[2]*accel[2]) / 16384.0 * 9.80665;
   state.accelMagnitude = amag;
 
   // Temperature

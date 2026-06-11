@@ -22,8 +22,8 @@
 // Motor PWM
 #define PWM_FREQ      5000
 #define PWM_RES       8
-#define PWM_CH_L      0
-#define PWM_CH_R      1
+#define PWM_CH_L      6
+#define PWM_CH_R      7
 
 // Motor ramp (ticks between speed steps)
 #define RAMP_STEP_MS  8

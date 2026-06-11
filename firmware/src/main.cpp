@@ -308,11 +308,7 @@ void autoVLTiming() {
 
 bool initMPU6050() {
   mpu.initialize();
-  if (!mpu.testConnection()) {
-    // Retry with alternate address 0x69
-    mpu.initialize(0x69);
-    if (!mpu.testConnection()) return false;
-  }
+  if (!mpu.testConnection()) return false;
 
   int devStatus = mpu.dmpInitialize();
   if (devStatus != 0) return false;

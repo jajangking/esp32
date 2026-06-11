@@ -309,10 +309,31 @@ void autoVLTiming() {
 
 bool initMPU6050() {
   mpu.initialize();
-  if (!mpu.testConnection()) return false;
+  if (!mpu.testConnection()) {
+    // Try alternate address 0x69 (AD0 pulled high)
+    mpu.setDeviceAddress(0x69);
+    mpu.initialize();
+    if (!mpu.testConnection()) {
+      logMsg("MPU6050 not found at 0x68 or 0x69");
+      return false;
+    }
+    logMsg("MPU6050 at 0x69");
+  } else {
+    logMsg("MPU6050 at 0x68");
+  }
 
   int devStatus = mpu.dmpInitialize();
-  if (devStatus != 0) return false;
+  if (devStatus != 0) {
+    logMsg("MPU6050 DMP init failed: %d, trying non-DMP mode", devStatus);
+    // Fallback: non-DMP mode (basic accel/gyro only, no yaw/pitch/roll)
+    mpu.setDMPEnabled(false);
+    mpu.setSleepEnabled(false);
+    dmpReady = false;
+    state.gyroOffsetX = mpu.getXGyroOffset();
+    state.gyroOffsetY = mpu.getYGyroOffset();
+    state.gyroOffset  = mpu.getZGyroOffset();
+    return true; // Return true - sensor is usable even without DMP
+  }
 
   // Supply your own gyro offsets here, scaled to min/max
   mpu.setXGyroOffset(0);
@@ -335,33 +356,33 @@ bool initMPU6050() {
 }
 
 void readIMU() {
-  if (!dmpReady) return;
+  int16_t gyro[3] = {0}, accel[3] = {0};
 
-  if (!mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) return;
+  if (dmpReady) {
+    if (!mpu.dmpGetCurrentFIFOPacket(fifoBuffer)) return;
 
-  Quaternion q;
-  VectorFloat gravity;
-  float ypr[3];
+    Quaternion q;
+    VectorFloat gravity;
+    float ypr[3];
 
-  // DMP quaternion → yaw/pitch/roll
-  mpu.dmpGetQuaternion(&q, fifoBuffer);
-  mpu.dmpGetGravity(&gravity, &q);
-  mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+    mpu.dmpGetQuaternion(&q, fifoBuffer);
+    mpu.dmpGetGravity(&gravity, &q);
+    mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
 
-  state.yaw   = ypr[0] * 180.0 / PI;
-  state.pitch = ypr[1] * 180.0 / PI;
-  state.roll  = ypr[2] * 180.0 / PI;
+    state.yaw   = ypr[0] * 180.0 / PI;
+    state.pitch = ypr[1] * 180.0 / PI;
+    state.roll  = ypr[2] * 180.0 / PI;
 
-  // Raw gyro (LSB → deg/s, ±250dps = 131 LSB/(deg/s))
-  int16_t gyro[3];
-  mpu.dmpGetGyro(gyro, fifoBuffer);
+    mpu.dmpGetGyro(gyro, fifoBuffer);
+    mpu.dmpGetAccel(accel, fifoBuffer);
+  } else {
+    mpu.getRotation(&gyro[0], &gyro[1], &gyro[2]);
+    mpu.getAcceleration(&accel[0], &accel[1], &accel[2]);
+  }
+  state.temperature = mpu.getTemperature();
   state.gyroX = gyro[0] / 131.0;
   state.gyroY = gyro[1] / 131.0;
   state.gyroZ = gyro[2] / 131.0;
-
-  // Raw accel for collision (LSB → m/s², ±2g = 16384 LSB/g)
-  int16_t accel[3];
-  mpu.dmpGetAccel(accel, fifoBuffer);
   float amag = sqrt(accel[0]*accel[0] + accel[1]*accel[1] + accel[2]*accel[2]) / 16384.0 * 9.80665;
   state.accelMagnitude = amag;
 

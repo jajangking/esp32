@@ -898,13 +898,22 @@ void setup() {
   Wire.begin(I2C_SDA, I2C_SCL);
   Wire.setClock(100000);
 
+  // I2C bus scan
+  logMsg("I2C scan:");
+  for (uint8_t a = 1; a < 127; a++) {
+    Wire.beginTransmission(a);
+    if (Wire.endTransmission() == 0) {
+      logMsg("  found 0x%02X", a);
+    }
+  }
+
+  // MPU6050 (init before VL to avoid I2C bus conflict)
+  state.mpuOk = initMPU6050();
+  logMsg("MPU6050: %s", state.mpuOk ? "OK" : "FAIL");
+
   // VL53L0X
   state.sensorOk = initVL53L0X();
   logMsg("VL53L0X: %s", state.sensorOk ? "OK" : "FAIL");
-
-  // MPU6050
-  state.mpuOk = initMPU6050();
-  logMsg("MPU6050: %s", state.mpuOk ? "OK" : "FAIL");
 
   if (state.sensorOk && state.mpuOk) {
     buzzerOk();

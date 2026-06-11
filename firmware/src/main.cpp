@@ -311,7 +311,7 @@ bool initMPU6050() {
   mpu.initialize();
   if (!mpu.testConnection()) {
     // Try alternate address 0x69 (AD0 pulled high)
-    mpu.devAddr = 0x69;
+    new (&mpu) MPU6050(0x69);
     mpu.initialize();
     if (!mpu.testConnection()) {
       logMsg("MPU6050 not found at 0x68 or 0x69");
